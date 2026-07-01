@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AWS Training Plan Discovery</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="toolbar" aria-label="Search controls">
+        <div class="brand-block">
+          <div class="product-mark" aria-hidden="true">TP</div>
+          <div>
+            <h1>Training Plan Discovery</h1>
+            <p>SageMaker HyperPod offering search across commercial US regions</p>
+          </div>
+        </div>
+        <div class="status-strip">
+          <span id="windowStatus">1 week window</span>
+          <span id="regionStatus">US regions</span>
+          <span id="sdkStatus">SDK list loading</span>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <aside class="controls" aria-label="Search form">
+          <form id="searchForm">
+            <label>
+              <span class="label-text">Instance type <span class="required" aria-hidden="true">*</span></span>
+              <input id="instanceType" name="instanceType" list="instanceTypes" value="ml.p4d.24xlarge" autocomplete="off" required />
+              <datalist id="instanceTypes"></datalist>
+            </label>
+
+            <div class="two-col">
+              <label>
+                <span class="label-text">Duration <span class="required" aria-hidden="true">*</span></span>
+                <input id="durationValue" name="durationValue" type="number" min="1" value="7" required />
+              </label>
+              <label>
+                <span class="label-text">Unit <span class="required" aria-hidden="true">*</span></span>
+                <select id="durationUnit" name="durationUnit">
+                  <option value="days">Days</option>
+                  <option value="hours">Hours</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="two-col">
+              <label>
+                <span class="label-text">Instance count <span class="required" aria-hidden="true">*</span></span>
+                <input id="instanceCount" name="instanceCount" type="number" min="1" value="1" required />
+              </label>
+              <label>
+                Maximum Segments
+                <input id="maximumSegments" name="maximumSegments" type="number" min="1" value="1" />
+              </label>
+            </div>
+
+            <div id="segmentsWarning" class="inline-warning hidden" role="alert">
+              Discontinuous segments - Workloads will temporarily pause for 1 hour between segment transitions and resume automatically. NOT RECOMMENDED
+            </div>
+
+            <div class="two-col">
+              <label>
+                Initial window
+                <select id="maxLookahead" name="maxLookahead">
+                  <option value="1">1 week</option>
+                  <option value="2">2 weeks</option>
+                  <option value="3">3 weeks</option>
+                  <option value="4">4 weeks</option>
+                  <option value="8">8 weeks</option>
+                  <option value="16">16 weeks</option>
+                  <option value="32">32 weeks</option>
+                  <option value="52" selected>52 weeks</option>
+                </select>
+              </label>
+            </div>
+
+            <label>
+              Start time after
+              <input id="startTimeAfter" name="startTimeAfter" type="datetime-local" />
+            </label>
+
+            <label>
+              Time zone
+              <select id="timeZone" name="timeZone">
+                <option value="Asia/Dubai" selected>GST - Gulf Standard Time</option>
+                <option value="UTC">UTC</option>
+                <option value="America/New_York">US Eastern</option>
+                <option value="America/Chicago">US Central</option>
+                <option value="America/Denver">US Mountain</option>
+                <option value="America/Los_Angeles">US Pacific</option>
+              </select>
+            </label>
+
+            <fieldset>
+              <legend>Regions</legend>
+              <label><input type="checkbox" name="regions" value="us-east-1" checked /> us-east-1</label>
+              <label><input type="checkbox" name="regions" value="us-east-2" checked /> us-east-2</label>
+              <label><input type="checkbox" name="regions" value="us-west-1" checked /> us-west-1</label>
+              <label><input type="checkbox" name="regions" value="us-west-2" checked /> us-west-2</label>
+            </fieldset>
+
+            <label class="check-row">
+              <input id="skipValidation" type="checkbox" />
+              Let AWS validate instance type during search
+            </label>
+
+            <div class="button-row">
+              <button type="submit" id="searchButton">Search</button>
+              <button type="button" id="validateButton" class="secondary">Validate type</button>
+            </div>
+          </form>
+        </aside>
+
+        <section class="results" aria-live="polite">
+          <div class="result-header">
+            <div>
+              <h2 id="resultTitle">Ready to search</h2>
+              <p id="resultMeta">Choose inputs and search the first approved window.</p>
+            </div>
+            <div class="result-actions">
+              <button type="button" id="approveNextButton" class="approval hidden">Search next window</button>
+              <button type="button" id="clearResultsButton" class="secondary" disabled>Clear results</button>
+              <button type="button" id="exportJsonButton" class="secondary" disabled>Export JSON</button>
+            </div>
+          </div>
+
+          <div id="messageArea"></div>
+
+          <div class="table-controls" aria-label="Result filters">
+            <label>
+              Filter
+              <input id="tableSearch" type="search" placeholder="Offering, instance, region, AZ" disabled />
+            </label>
+            <label>
+              Region
+              <select id="regionFilter" disabled>
+                <option value="">All regions</option>
+              </select>
+            </label>
+            <label>
+              AZ
+              <select id="azFilter" disabled>
+                <option value="">All AZs</option>
+              </select>
+            </label>
+            <label>
+              Segments
+              <select id="segmentFilter" disabled>
+                <option value="">All</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th><button type="button" class="sort-button" data-sort-key="region">Region</button></th>
+                  <th><button type="button" class="sort-button" data-sort-key="az">AZ</button></th>
+                  <th><button type="button" class="sort-button" data-sort-key="instance">Instance</button></th>
+                  <th><button type="button" class="sort-button" data-sort-key="count">Count</button></th>
+                  <th><button type="button" class="sort-button" data-sort-key="start">Start</button></th>
+                  <th><button type="button" class="sort-button" data-sort-key="end">End</button></th>
+                  <th><button type="button" class="sort-button" data-sort-key="hours">Hours</button></th>
+                  <th><button type="button" class="sort-button" data-sort-key="segments">Segments</button></th>
+                  <th><button type="button" class="sort-button" data-sort-key="fee">Fee</button></th>
+                  <th><button type="button" class="sort-button" data-sort-key="offering">Offering ID</button></th>
+                </tr>
+              </thead>
+              <tbody id="offeringsBody">
+                <tr><td colspan="10" class="empty">No search run yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <section class="warnings">
+            <h3>Region warnings</h3>
+            <ul id="warningsList">
+              <li>No warnings.</li>
+            </ul>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
