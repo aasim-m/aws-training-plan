@@ -78,6 +78,10 @@ def test_static_asset_served() -> None:
     assert "sortOfferings" in response.text
     assert "filterOfferings" in response.text
     assert "clearResults" in response.text
+    assert "resetForm" in response.text
+    assert "copyCliCommand" in response.text
+    assert "toggleSegments" in response.text
+    assert "startSearchTimer" in response.text
     assert "localDateTimeToIso" in response.text
     assert "updateSegmentFilterOptions" in response.text
     assert "MAX_LOOKAHEAD_WEEKS" in response.text
@@ -99,6 +103,10 @@ def test_index_has_segments_input() -> None:
     assert 'id="azFilter"' in response.text
     assert 'id="segmentFilter"' in response.text
     assert 'id="clearResultsButton"' in response.text
+    assert 'id="resetFormButton"' in response.text
+    assert 'id="copyCliButton"' in response.text
+    assert 'value="ml.p4d.24xlarge"' not in response.text
+    assert '<option value="1" selected>1 week</option>' in response.text
     assert "GST - Gulf Standard Time" in response.text
     assert "Let AWS validate instance type during search" in response.text
     assert "Discontinuous segments" in response.text

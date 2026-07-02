@@ -369,8 +369,14 @@ td.mono {
 }
 
 .multi-segment-row,
-.multi-segment-row .group-cell {
+.multi-segment-row .group-cell,
+.multi-segment-summary {
   background: #fff8ed;
+}
+
+.segment-detail-row {
+  background: #fffcf7;
+  color: #394656;
 }
 
 .segment-group-start td {
@@ -402,6 +408,35 @@ td.mono {
   border-color: #d86f00;
   background: #fff0dc;
   color: #8b3f00;
+}
+
+.inline-action {
+  min-height: 26px;
+  width: auto;
+  margin-left: 7px;
+  padding: 3px 7px;
+  border-color: var(--line-strong);
+  background: #ffffff;
+  color: #1f2933;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.inline-action:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.offering-actions-cell {
+  max-width: 360px;
+}
+
+.offering-actions-cell span {
+  display: inline-block;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
 }
 
 .empty {

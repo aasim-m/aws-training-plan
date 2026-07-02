@@ -96,9 +96,11 @@ The web UI supports:
 - Optional start time
 - Initial search window selection
 - Timezone display, defaulting to GST
+- Elapsed-time search status while AWS calls are running
 - Sortable and filterable offerings table
-- Grouped multi-segment offerings
-- Clear results and JSON export actions
+- Collapsible grouped multi-segment offerings
+- Copy actions for offering IDs, offering JSON, and the equivalent CLI command
+- Clear results, reset form, and JSON export actions
 - Region warning summary
 - Live AWS instance type validation
 
@@ -186,7 +188,7 @@ python -m training_plan_discovery.cli --instance-type ml.p5.48xlarge --validate-
 | `maximum_segments` | No | `1` | Maximum number of reserved-capacity segments per offering. Values above `1` allow discontinuous segments. |
 | `regions` | No | Commercial US SageMaker regions | Optional region filter. |
 | `start_time_after` | No | Current UTC time | ISO-8601 timestamp to start searching from. |
-| `max_lookahead_weeks` | No | `52` | Maximum lookahead cap. Must be one of `1`, `2`, `3`, `4`, `8`, `16`, `32`, or `52`. |
+| `max_lookahead_weeks` | No | `52` in the shared backend, `1` in the CLI and web UI | Maximum lookahead cap. Must be one of `1`, `2`, `3`, `4`, `8`, `16`, `32`, or `52`. |
 
 Provide either `duration_days` or `duration_hours`, not both.
 

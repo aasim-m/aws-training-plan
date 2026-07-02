@@ -67,8 +67,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--max-lookahead-weeks",
         type=int,
-        default=52,
-        help="Maximum number of weeks to search ahead. Defaults to 52",
+        default=1,
+        help="Maximum number of weeks to search ahead. Defaults to 1",
     )
     parser.add_argument(
         "--yes",

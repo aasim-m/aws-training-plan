@@ -28,12 +28,16 @@ const regionFilter = document.querySelector("#regionFilter");
 const azFilter = document.querySelector("#azFilter");
 const segmentFilter = document.querySelector("#segmentFilter");
 const sortButtons = document.querySelectorAll(".sort-button");
+const resetFormButton = document.querySelector("#resetFormButton");
+const copyCliButton = document.querySelector("#copyCliButton");
 
 const MAX_LOOKAHEAD_WEEKS = 52;
 
 let approvedLookaheadWeeks = 1;
 let lastResult = null;
 let currentOfferings = [];
+let lastPayload = null;
+let searchTimer = null;
 let sortState = { key: "start", direction: "desc" };
 
 async function loadSupportedTypes() {
@@ -84,6 +88,7 @@ function buildPayload() {
 function setBusy(isBusy) {
   searchButton.disabled = isBusy;
   validateButton.disabled = isBusy;
+  resetFormButton.disabled = isBusy;
   approveNextButton.disabled = isBusy;
 }
 
@@ -102,6 +107,7 @@ async function runSearch({ resetApproval = false } = {}) {
     lastResult = null;
     currentOfferings = [];
     exportJsonButton.disabled = true;
+    copyCliButton.disabled = true;
     clearResultsButton.disabled = true;
     approveNextButton.classList.add("hidden");
     resetFilters();
@@ -112,13 +118,14 @@ async function runSearch({ resetApproval = false } = {}) {
   }
 
   setBusy(true);
-  setMessage(`Searching through ${approvedLookaheadWeeks} week(s)...`);
+  lastPayload = buildPayload();
+  startSearchTimer();
 
   try {
     const response = await fetch("/api/search", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(buildPayload()),
+      body: JSON.stringify(lastPayload),
     });
     const data = await response.json();
     if (!response.ok) {
@@ -130,6 +137,7 @@ async function runSearch({ resetApproval = false } = {}) {
     lastResult = null;
     renderError(error.message);
   } finally {
+    stopSearchTimer();
     setBusy(false);
   }
 }
@@ -169,13 +177,14 @@ function renderResult(data) {
   windowStatus.textContent = `${data.lookahead_used_weeks} week window`;
   regionStatus.textContent = regions.length ? `${regions.length} regions` : "No regions";
   exportJsonButton.disabled = false;
+  copyCliButton.disabled = false;
   clearResultsButton.disabled = false;
   currentOfferings = offerings;
   updateFilterOptions(offerings);
 
   if (data.found) {
     resultTitle.textContent = `${offerings.length} offering${offerings.length === 1 ? "" : "s"} found`;
-    resultMeta.textContent = `Latest start date highlighted by sort order; searched ${regions.join(", ")} through ${data.lookahead_used_weeks} week(s).`;
+    resultMeta.textContent = `${regions.length} region${regions.length === 1 ? "" : "s"} searched through ${data.lookahead_used_weeks} week(s).`;
     renderOfferings(offerings);
     if (data.approval_required && data.next_lookahead_weeks) {
       approveNextButton.classList.remove("hidden");
@@ -215,6 +224,7 @@ function renderError(message) {
   renderWarnings([]);
   approveNextButton.classList.add("hidden");
   exportJsonButton.disabled = true;
+  copyCliButton.disabled = true;
   clearResultsButton.disabled = true;
   currentOfferings = [];
   resetFilters();
@@ -239,32 +249,39 @@ function renderOfferings(offerings) {
       ? offering.reserved_capacity_offerings
       : [{}];
     const segmentCount = capacity.length;
-    capacity.forEach((item, index) => {
-      const row = document.createElement("tr");
-      if (segmentCount > 1) {
-        row.classList.add("multi-segment-row");
-      }
-      if (index === 0 && segmentCount > 1) row.classList.add("segment-group-start");
-      if (index === segmentCount - 1 && segmentCount > 1) row.classList.add("segment-group-end");
+    const groupId = `segments-${safeId(offering.training_plan_offering_id || Math.random().toString(36))}`;
+    const summaryRow = document.createElement("tr");
+    if (segmentCount > 1) summaryRow.classList.add("multi-segment-summary");
+    appendCell(summaryRow, offering.region || "");
+    appendCell(summaryRow, uniqueValues(capacity.map((item) => item.AvailabilityZone).filter(Boolean)).join(", "));
+    appendCell(summaryRow, uniqueValues(capacity.map((item) => item.InstanceType).filter(Boolean)).join(", "));
+    appendCell(summaryRow, uniqueValues(capacity.map((item) => item.InstanceCount).filter(Boolean)).join(", "));
+    appendCell(summaryRow, formatDateTime(capacity[0].StartTime || offering.start_time || ""));
+    appendCell(summaryRow, formatDateTime(capacity[capacity.length - 1].EndTime || offering.end_time || ""));
+    appendCell(summaryRow, String(totalHours(capacity, offering)));
+    appendSegmentSummaryCell(summaryRow, segmentCount, groupId);
+    appendCell(summaryRow, `${offering.currency_code || ""} ${offering.upfront_fee || ""}`.trim());
+    appendOfferingActionsCell(summaryRow, offering);
+    offeringsBody.appendChild(summaryRow);
 
-      appendCell(row, offering.region || "", { rowSpan: index === 0 ? segmentCount : 0 });
-      appendCell(row, item.AvailabilityZone || "");
-      appendCell(row, item.InstanceType || "");
-      appendCell(row, String(item.InstanceCount || ""));
-      appendCell(row, formatDateTime(item.StartTime || offering.start_time || ""));
-      appendCell(row, formatDateTime(item.EndTime || offering.end_time || ""));
-      appendCell(row, String(item.DurationHours || offering.duration_hours || ""));
-      appendSegmentCell(row, segmentCount, index);
-      appendCell(row, `${offering.currency_code || ""} ${offering.upfront_fee || ""}`.trim(), {
-        rowSpan: index === 0 ? segmentCount : 0,
+    if (segmentCount > 1) {
+      capacity.forEach((item, index) => {
+        const row = document.createElement("tr");
+        row.classList.add("segment-detail-row", "hidden");
+        row.dataset.groupId = groupId;
+        appendCell(row, `Segment ${index + 1}`);
+        appendCell(row, item.AvailabilityZone || "");
+        appendCell(row, item.InstanceType || "");
+        appendCell(row, String(item.InstanceCount || ""));
+        appendCell(row, formatDateTime(item.StartTime || ""));
+        appendCell(row, formatDateTime(item.EndTime || ""));
+        appendCell(row, String(item.DurationHours || ""));
+        appendSegmentCell(row, segmentCount, index);
+        appendCell(row, "");
+        appendCell(row, "");
+        offeringsBody.appendChild(row);
       });
-      appendCell(row, offering.training_plan_offering_id || "", {
-        rowSpan: index === 0 ? segmentCount : 0,
-        className: "mono",
-        title: offering.training_plan_offering_id || "",
-      });
-      offeringsBody.appendChild(row);
-    });
+    }
   });
 }
 
@@ -288,6 +305,53 @@ function appendSegmentCell(row, segmentCount, index) {
   badge.textContent = segmentCount > 1 ? `${index + 1} of ${segmentCount}` : "1 segment";
   cell.appendChild(badge);
   row.appendChild(cell);
+}
+
+function appendSegmentSummaryCell(row, segmentCount, groupId) {
+  const cell = document.createElement("td");
+  const badge = document.createElement("span");
+  badge.className = segmentCount > 1 ? "segment-badge multi" : "segment-badge";
+  badge.textContent = `${segmentCount} segment${segmentCount === 1 ? "" : "s"}`;
+  cell.appendChild(badge);
+  if (segmentCount > 1) {
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "inline-action segment-toggle";
+    toggle.textContent = "Show";
+    toggle.addEventListener("click", () => toggleSegments(groupId, toggle));
+    cell.appendChild(toggle);
+  }
+  row.appendChild(cell);
+}
+
+function appendOfferingActionsCell(row, offering) {
+  const cell = document.createElement("td");
+  cell.className = "mono offering-actions-cell";
+  const id = offering.training_plan_offering_id || "";
+  const idText = document.createElement("span");
+  idText.textContent = id;
+  idText.title = id;
+  cell.appendChild(idText);
+  cell.appendChild(copyButton("ID", id));
+  cell.appendChild(copyButton("JSON", JSON.stringify(offering, null, 2)));
+  row.appendChild(cell);
+}
+
+function copyButton(label, value) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "inline-action";
+  button.textContent = `Copy ${label}`;
+  button.disabled = !value;
+  button.addEventListener("click", () => copyText(value, `${label} copied.`));
+  return button;
+}
+
+function toggleSegments(groupId, toggle) {
+  const rows = Array.from(document.querySelectorAll(`tr[data-group-id="${groupId}"]`));
+  const shouldShow = rows.some((row) => row.classList.contains("hidden"));
+  rows.forEach((row) => row.classList.toggle("hidden", !shouldShow));
+  toggle.textContent = shouldShow ? "Hide" : "Show";
 }
 
 function filterOfferings(offerings) {
@@ -426,8 +490,26 @@ function clearResults() {
   setMessage("");
   approveNextButton.classList.add("hidden");
   exportJsonButton.disabled = true;
+  copyCliButton.disabled = true;
   clearResultsButton.disabled = true;
   resetFilters();
+}
+
+function resetForm() {
+  instanceType.value = "";
+  durationValue.value = "7";
+  durationUnit.value = "days";
+  instanceCount.value = "1";
+  maximumSegments.value = "1";
+  maxLookahead.value = "1";
+  startTimeAfter.value = "";
+  timeZone.value = "Asia/Dubai";
+  skipValidation.checked = false;
+  document.querySelectorAll("input[name='regions']").forEach((item) => {
+    item.checked = true;
+  });
+  updateSegmentsWarning();
+  clearResults();
 }
 
 function formatDateTime(value) {
@@ -524,6 +606,78 @@ function exportJson() {
   URL.revokeObjectURL(url);
 }
 
+async function copyCliCommand() {
+  if (!lastPayload) return;
+  const command = cliCommand(lastPayload);
+  await copyText(command, "CLI command copied.");
+}
+
+function cliCommand(payload) {
+  const parts = [
+    "python",
+    "-m",
+    "training_plan_discovery.cli",
+    "--instance-type",
+    shellQuote(payload.instance_type),
+  ];
+  if (payload.duration_days !== undefined) {
+    parts.push("--duration-days", String(payload.duration_days));
+  } else {
+    parts.push("--duration-hours", String(payload.duration_hours));
+  }
+  parts.push("--instance-count", String(payload.instance_count || 1));
+  parts.push("--maximum-segments", String(payload.maximum_segments || 1));
+  parts.push("--max-lookahead-weeks", String(payload.approved_lookahead_weeks || 1));
+  if (payload.start_time_after) parts.push("--start-time-after", shellQuote(payload.start_time_after));
+  if (payload.skip_instance_type_validation) parts.push("--skip-instance-type-validation");
+  if (payload.regions && payload.regions.length) {
+    parts.push("--regions", ...payload.regions.map(shellQuote));
+  }
+  return parts.join(" ");
+}
+
+function shellQuote(value) {
+  const text = String(value || "");
+  return /^[A-Za-z0-9._:/+-]+$/.test(text) ? text : `"${text.replaceAll('"', '\\"')}"`;
+}
+
+async function copyText(value, message) {
+  try {
+    await navigator.clipboard.writeText(value);
+    setMessage(message, "success");
+  } catch (error) {
+    setMessage("Copy failed. Select and copy the value manually.", "error");
+  }
+}
+
+function startSearchTimer() {
+  const started = Date.now();
+  const regions = selectedRegions();
+  const regionText = regions.length ? regions.join(", ") : "no selected regions";
+  const update = () => {
+    const elapsedSeconds = Math.max(0, Math.round((Date.now() - started) / 1000));
+    setMessage(`Searching ${regionText} through ${approvedLookaheadWeeks} week(s). Elapsed ${elapsedSeconds}s...`);
+  };
+  update();
+  searchTimer = window.setInterval(update, 1000);
+}
+
+function stopSearchTimer() {
+  if (searchTimer !== null) {
+    window.clearInterval(searchTimer);
+    searchTimer = null;
+  }
+}
+
+function totalHours(capacity, offering) {
+  const total = capacity.reduce((sum, item) => sum + Number(item.DurationHours || 0), 0);
+  return total || Number(offering.duration_hours || 0);
+}
+
+function safeId(value) {
+  return String(value).replace(/[^A-Za-z0-9_-]/g, "-");
+}
+
 function escapeHtml(value) {
   return value
     .replaceAll("&", "&amp;")
@@ -546,7 +700,9 @@ approveNextButton.addEventListener("click", () => {
 });
 
 clearResultsButton.addEventListener("click", clearResults);
+resetFormButton.addEventListener("click", resetForm);
 exportJsonButton.addEventListener("click", exportJson);
+copyCliButton.addEventListener("click", copyCliCommand);
 maximumSegments.addEventListener("input", updateSegmentsWarning);
 maximumSegments.addEventListener("input", updateSegmentFilterOptions);
 maximumSegments.addEventListener("change", updateSegmentsWarning);

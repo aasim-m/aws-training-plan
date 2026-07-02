@@ -28,7 +28,7 @@
           <form id="searchForm">
             <label>
               <span class="label-text">Instance type <span class="required" aria-hidden="true">*</span></span>
-              <input id="instanceType" name="instanceType" list="instanceTypes" value="ml.p4d.24xlarge" autocomplete="off" required />
+              <input id="instanceType" name="instanceType" list="instanceTypes" autocomplete="off" required />
               <datalist id="instanceTypes"></datalist>
             </label>
 
@@ -65,14 +65,14 @@
               <label>
                 Initial window
                 <select id="maxLookahead" name="maxLookahead">
-                  <option value="1">1 week</option>
+                  <option value="1" selected>1 week</option>
                   <option value="2">2 weeks</option>
                   <option value="3">3 weeks</option>
                   <option value="4">4 weeks</option>
                   <option value="8">8 weeks</option>
                   <option value="16">16 weeks</option>
                   <option value="32">32 weeks</option>
-                  <option value="52" selected>52 weeks</option>
+                  <option value="52">52 weeks</option>
                 </select>
               </label>
             </div>
@@ -110,6 +110,7 @@
             <div class="button-row">
               <button type="submit" id="searchButton">Search</button>
               <button type="button" id="validateButton" class="secondary">Validate type</button>
+              <button type="button" id="resetFormButton" class="secondary">Reset form</button>
             </div>
           </form>
         </aside>
@@ -122,6 +123,7 @@
             </div>
             <div class="result-actions">
               <button type="button" id="approveNextButton" class="approval hidden">Search next window</button>
+              <button type="button" id="copyCliButton" class="secondary" disabled>Copy CLI</button>
               <button type="button" id="clearResultsButton" class="secondary" disabled>Clear results</button>
               <button type="button" id="exportJsonButton" class="secondary" disabled>Export JSON</button>
             </div>
