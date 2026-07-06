@@ -9,8 +9,8 @@ The tool calls the SageMaker `SearchTrainingPlanOfferings` API using your local 
 - Searches SageMaker HyperPod training plan offerings with `TargetResources=["hyperpod-cluster"]`
 - Supports instance type, duration, instance count, maximum segments, region filtering, and start-time filtering
 - Searches commercial `us-*` AWS regions by default, excluding GovCloud
-- Expands lookahead windows through `1`, `2`, `3`, `4`, `8`, `16`, `32`, and `52` weeks
-- Shows all matching offerings from the selected search window
+- Expands start date windows through `1`, `2`, `3`, `4`, `8`, `16`, `32`, and `52` weeks
+- Shows all matching offerings from the selected start date window
 - Provides a local web UI with sorting, filtering, grouped multi-segment offerings, and JSON export
 - Provides a CLI for terminal usage and automation
 
@@ -94,7 +94,7 @@ The web UI supports:
 - Maximum Segments filtering with a warning for discontinuous multi-segment offerings
 - Region filtering
 - Optional start time
-- Initial search window selection
+- Start date window selection
 - Timezone display, defaulting to GST
 - Elapsed-time search status while AWS calls are running
 - Sortable and filterable offerings table
@@ -153,7 +153,7 @@ Search from a specific start time:
 training-plan-discovery --instance-type ml.p5.48xlarge --duration-days 7 --start-time-after 2026-07-01T00:00:00Z
 ```
 
-Approve all search-window expansions up to a maximum:
+Approve all start date window expansions up to a maximum:
 
 ```powershell
 training-plan-discovery --instance-type ml.p5.48xlarge --duration-days 7 --max-lookahead-weeks 16 --yes
@@ -188,7 +188,7 @@ python -m training_plan_discovery.cli --instance-type ml.p5.48xlarge --validate-
 | `maximum_segments` | No | `1` | Maximum number of reserved-capacity segments per offering. Values above `1` allow discontinuous segments. |
 | `regions` | No | Commercial US SageMaker regions | Optional region filter. |
 | `start_time_after` | No | Current UTC time | ISO-8601 timestamp to start searching from. |
-| `max_lookahead_weeks` | No | `52` in the shared backend, `1` in the CLI and web UI | Maximum lookahead cap. Must be one of `1`, `2`, `3`, `4`, `8`, `16`, `32`, or `52`. |
+| `max_lookahead_weeks` | No | `52` in the shared backend, `1` in the CLI and web UI | Maximum start date lookahead cap. Must be one of `1`, `2`, `3`, `4`, `8`, `16`, `32`, or `52`. |
 
 Provide either `duration_days` or `duration_hours`, not both.
 
@@ -210,7 +210,21 @@ If the installed SDK model is stale, use one of these options:
 - Use `--skip-instance-type-validation` to let AWS validate during the real search.
 - Use `--validate-instance-type-with-aws` to make one live AWS validation call for a single instance type.
 
-Being listed by the SDK enum means the API accepts the value. It does not guarantee current availability in any region, quantity, duration, or search window.
+Being listed by the SDK enum means the API accepts the value. It does not guarantee current availability in any region, quantity, duration, or start date window.
+
+## Start Date Window Behavior
+
+The start date window controls how far after `start_time_after` the offering is allowed to start. It does not require the full training plan to end inside that window.
+
+For example:
+
+```text
+start_time_after = 2026-07-03T09:55:00Z
+duration_days = 14
+start date window = 1 week
+```
+
+The tool searches for 14-day offerings whose start date is within the first week after `start_time_after`. It still allows those offerings to end after that first week.
 
 ## Region Behavior
 
@@ -218,7 +232,7 @@ The tool searches commercial AWS regions whose names start with `us-`, excluding
 
 Region-specific API failures are non-fatal. They are captured in the warnings/errors output while the search continues in other regions.
 
-During one search session, clear non-retryable region validation errors are not retried on expanded lookahead windows. For example, if `us-west-1` reports that the requested instance type is invalid for `hyperpod-cluster`, later windows in the same search skip `us-west-1`. The next independent search starts fresh and checks the region again.
+During one search session, clear non-retryable region validation errors are not retried on expanded start date windows. For example, if `us-west-1` reports that the requested instance type is invalid for `hyperpod-cluster`, later windows in the same search skip `us-west-1`. The next independent search starts fresh and checks the region again.
 
 ## Architecture
 
@@ -245,8 +259,8 @@ Covered scenarios include:
 - Maximum Segments filtering
 - Optional `start_time_after`
 - Latest start date selection across regions
-- Returning all offerings from the successful search window
-- Search-window expansion
+- Returning all offerings from the successful start date window
+- Start date window expansion
 - No-offering responses
 - Non-fatal per-region errors
 - CLI human-readable and JSON output

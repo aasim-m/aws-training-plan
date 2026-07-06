@@ -112,7 +112,7 @@ async function runSearch({ resetApproval = false } = {}) {
     approveNextButton.classList.add("hidden");
     resetFilters();
     resultTitle.textContent = "Searching";
-    resultMeta.textContent = `Clearing previous results and searching through ${approvedLookaheadWeeks} week(s).`;
+    resultMeta.textContent = `Clearing previous results and searching start dates through ${approvedLookaheadWeeks} week(s).`;
     renderEmpty("Searching...");
     renderWarnings([]);
   }
@@ -174,7 +174,7 @@ async function validateInstanceType() {
 function renderResult(data) {
   const regions = data.searched_regions || [];
   const offerings = data.offerings || [];
-  windowStatus.textContent = `${data.lookahead_used_weeks} week window`;
+  windowStatus.textContent = `${data.lookahead_used_weeks} week start window`;
   regionStatus.textContent = regions.length ? `${regions.length} regions` : "No regions";
   exportJsonButton.disabled = false;
   copyCliButton.disabled = false;
@@ -184,26 +184,26 @@ function renderResult(data) {
 
   if (data.found) {
     resultTitle.textContent = `${offerings.length} offering${offerings.length === 1 ? "" : "s"} found`;
-    resultMeta.textContent = `${regions.length} region${regions.length === 1 ? "" : "s"} searched through ${data.lookahead_used_weeks} week(s).`;
+    resultMeta.textContent = `${regions.length} region${regions.length === 1 ? "" : "s"} searched; start dates within ${data.lookahead_used_weeks} week(s).`;
     renderOfferings(offerings);
     if (data.approval_required && data.next_lookahead_weeks) {
       approveNextButton.classList.remove("hidden");
       approveNextButton.textContent = `Search ${data.next_lookahead_weeks} weeks`;
       approveNextButton.dataset.nextWindow = String(data.next_lookahead_weeks);
-      setMessage(`Offerings found. You can also search through ${data.next_lookahead_weeks} week(s).`, "success");
+      setMessage(`Offerings found. You can also search start dates through ${data.next_lookahead_weeks} week(s).`, "success");
     } else {
       approveNextButton.classList.add("hidden");
       setMessage("");
     }
   } else {
     resultTitle.textContent = "No offerings found";
-    resultMeta.textContent = `Searched ${regions.join(", ") || "no regions"} through ${data.lookahead_used_weeks} week(s).`;
-    renderEmpty("No offerings in the approved search window.");
+    resultMeta.textContent = `Searched ${regions.join(", ") || "no regions"}; start dates within ${data.lookahead_used_weeks} week(s).`;
+    renderEmpty("No offerings in the approved start date window.");
     if (data.approval_required && data.next_lookahead_weeks) {
       approveNextButton.classList.remove("hidden");
       approveNextButton.textContent = `Search ${data.next_lookahead_weeks} weeks`;
       approveNextButton.dataset.nextWindow = String(data.next_lookahead_weeks);
-      setMessage(`Approve the next search window to continue to ${data.next_lookahead_weeks} week(s).`, "warn");
+      setMessage(`Approve the next start date window to continue to ${data.next_lookahead_weeks} week(s).`, "warn");
     } else {
       approveNextButton.classList.add("hidden");
       setMessage("");
@@ -482,8 +482,8 @@ function clearResults() {
   lastResult = null;
   currentOfferings = [];
   resultTitle.textContent = "Ready to search";
-  resultMeta.textContent = "Choose inputs and search the first approved window.";
-  windowStatus.textContent = `${approvedLookaheadWeeks} week initial`;
+  resultMeta.textContent = "Choose inputs and search the first approved start date window.";
+  windowStatus.textContent = `${approvedLookaheadWeeks} week start window`;
   regionStatus.textContent = "US regions";
   renderEmpty("No search run yet.");
   renderWarnings([]);
@@ -656,7 +656,7 @@ function startSearchTimer() {
   const regionText = regions.length ? regions.join(", ") : "no selected regions";
   const update = () => {
     const elapsedSeconds = Math.max(0, Math.round((Date.now() - started) / 1000));
-    setMessage(`Searching ${regionText} through ${approvedLookaheadWeeks} week(s). Elapsed ${elapsedSeconds}s...`);
+    setMessage(`Searching ${regionText} for start dates through ${approvedLookaheadWeeks} week(s). Elapsed ${elapsedSeconds}s...`);
   };
   update();
   searchTimer = window.setInterval(update, 1000);
@@ -709,7 +709,7 @@ maximumSegments.addEventListener("change", updateSegmentsWarning);
 maximumSegments.addEventListener("change", updateSegmentFilterOptions);
 maxLookahead.addEventListener("change", () => {
   approvedLookaheadWeeks = Number(maxLookahead.value || "1");
-  windowStatus.textContent = `${approvedLookaheadWeeks} week max`;
+  windowStatus.textContent = `${approvedLookaheadWeeks} week start window`;
 });
 timeZone.addEventListener("change", () => renderOfferings(currentOfferings));
 tableSearch.addEventListener("input", () => renderOfferings(currentOfferings));
@@ -732,4 +732,4 @@ loadSupportedTypes();
 updateSegmentsWarning();
 updateSegmentFilterOptions();
 approvedLookaheadWeeks = Number(maxLookahead.value || "1");
-windowStatus.textContent = `${approvedLookaheadWeeks} week initial`;
+windowStatus.textContent = `${approvedLookaheadWeeks} week start window`;

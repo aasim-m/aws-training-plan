@@ -19,7 +19,9 @@ class FakeClient:
 
     def search_training_plan_offerings(self, **kwargs: object) -> dict[str, object]:
         self._calls.append({"region": self._region, **kwargs})
-        lookahead_days = (kwargs["EndTimeBefore"] - kwargs["StartTimeAfter"]).days  # type: ignore[operator]
+        request_span = kwargs["EndTimeBefore"] - kwargs["StartTimeAfter"]  # type: ignore[operator]
+        duration_hours = int(kwargs.get("DurationHours", 0))
+        lookahead_days = int((request_span.total_seconds() - duration_hours * 3600) // 86400)
         key = (self._region, lookahead_days)
         response = self._responses.get(key, {"TrainingPlanOfferings": []})
         if isinstance(response, Exception):
@@ -294,7 +296,39 @@ def test_search_uses_request_start_time_after() -> None:
     )
 
     assert calls[0]["StartTimeAfter"] == datetime(2026, 7, 1, tzinfo=timezone.utc)
-    assert calls[0]["EndTimeBefore"] == datetime(2026, 7, 8, tzinfo=timezone.utc)
+    assert calls[0]["EndTimeBefore"] == datetime(2026, 7, 9, tzinfo=timezone.utc)
+
+
+def test_start_date_window_adds_duration_to_end_time_before() -> None:
+    calls: list[dict[str, object]] = []
+
+    fake_discovery({}, regions=["us-east-1"], calls=calls).discover_latest(
+        SearchRequest.from_input(
+            instance_type="ml.p5.48xlarge",
+            duration_days=14,
+            max_lookahead_weeks=1,
+            start_time_after="2026-07-03T09:55:00Z",
+        )
+    )
+
+    assert calls[0]["StartTimeAfter"] == datetime(2026, 7, 3, 9, 55, tzinfo=timezone.utc)
+    assert calls[0]["EndTimeBefore"] == datetime(2026, 7, 24, 9, 55, tzinfo=timezone.utc)
+
+
+def test_start_date_window_adds_segment_gap_buffer_to_end_time_before() -> None:
+    calls: list[dict[str, object]] = []
+
+    fake_discovery({}, regions=["us-east-1"], calls=calls).discover_latest(
+        SearchRequest.from_input(
+            instance_type="ml.p5.48xlarge",
+            duration_hours=120,
+            segments=2,
+            max_lookahead_weeks=1,
+            start_time_after="2026-07-03T09:55:00Z",
+        )
+    )
+
+    assert calls[0]["EndTimeBefore"] == datetime(2026, 7, 15, 10, 55, tzinfo=timezone.utc)
 
 
 def test_expands_beyond_first_window_only_when_needed() -> None:

@@ -114,7 +114,7 @@ def test_cli_outputs_human_table_by_default(monkeypatch, capsys) -> None:
 
     assert exit_code == 0
     output = capsys.readouterr().out
-    assert "Found 2 training plan offerings within 1 week(s)." in output
+    assert "Found 2 training plan offerings with start dates within 1 week(s)." in output
     assert "Region" in output
     assert "AZ" in output
     assert "offering-1" in output
@@ -150,8 +150,8 @@ def test_format_search_result_shows_next_approval_for_no_result() -> None:
         }
     )
 
-    assert "No training plan offering found within 1 week(s)." in output
-    assert "Next approval needed: search within 2 week(s)." in output
+    assert "No training plan offering found with start dates within 1 week(s)." in output
+    assert "Next approval needed: search start dates within 2 week(s)." in output
 
 
 def test_cli_lists_supported_instance_types(monkeypatch, capsys) -> None:
@@ -314,4 +314,3 @@ def test_cli_validation_error(capsys) -> None:
     assert exit_code == 2
     error = json.loads(capsys.readouterr().err)
     assert "duration_days must be a positive integer" in error["error"]
-

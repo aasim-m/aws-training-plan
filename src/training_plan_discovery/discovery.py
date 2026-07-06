@@ -204,7 +204,12 @@ class TrainingPlanDiscovery:
         start_time = self._now_provider()
         if start_time.tzinfo is None:
             start_time = start_time.replace(tzinfo=timezone.utc)
-        end_time = start_time + timedelta(weeks=DEFAULT_LOOKAHEAD_WEEKS)
+        end_time = _end_time_before(
+            start_time,
+            lookahead_weeks=DEFAULT_LOOKAHEAD_WEEKS,
+            duration_hours=duration_hours,
+            segments=1,
+        )
 
         try:
             client = self._create_sagemaker_client(region)
@@ -259,7 +264,12 @@ class TrainingPlanDiscovery:
     ) -> dict[str, list[dict[str, Any]]]:
         start_time = request.start_time_after or self._now_provider()
         start_time = _ensure_utc(start_time)
-        end_time = start_time + timedelta(weeks=lookahead_weeks)
+        end_time = _end_time_before(
+            start_time,
+            lookahead_weeks=lookahead_weeks,
+            duration_hours=request.duration_hours,
+            segments=request.segments,
+        )
 
         offerings: list[dict[str, Any]] = []
         errors: list[dict[str, str]] = []
@@ -368,6 +378,20 @@ def validate_training_plan_instance_type(instance_type: str) -> None:
 
 def _lookahead_windows(max_lookahead_weeks: int) -> list[int]:
     return [weeks for weeks in LOOKAHEAD_WINDOWS if weeks <= max_lookahead_weeks]
+
+
+def _end_time_before(
+    start_time: datetime,
+    *,
+    lookahead_weeks: int,
+    duration_hours: int,
+    segments: int,
+) -> datetime:
+    segment_gap_hours = max(segments - 1, 0)
+    return start_time + timedelta(
+        weeks=lookahead_weeks,
+        hours=duration_hours + segment_gap_hours,
+    )
 
 
 def _segment_count(offering: dict[str, Any]) -> int:

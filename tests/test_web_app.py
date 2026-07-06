@@ -93,7 +93,7 @@ def test_index_has_segments_input() -> None:
 
     assert response.status_code == 200
     assert "Maximum Segments" in response.text
-    assert "Initial window" in response.text
+    assert "Start date window" in response.text
     assert 'data-sort-key="segments"' in response.text
     assert 'id="maximumSegments"' in response.text
     assert 'id="segmentsWarning"' in response.text

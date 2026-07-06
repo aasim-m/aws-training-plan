@@ -55,24 +55,24 @@ sequenceDiagram
     User->>Web: Submit search inputs
     Web->>Core: Build SearchRequest
     Core->>SDK: Validate instance type against SDK enum
-    Core->>SM: SearchTrainingPlanOfferings by region and window
+    Core->>SM: SearchTrainingPlanOfferings by region and start date window
     SM-->>Core: Offerings or region errors
-    Core-->>Web: Result with offerings, warnings, and next window
+    Core-->>Web: Result with offerings, warnings, and next start date window
     Web-->>User: Table, JSON, or web response
 ```
 
-## Search Window Flow
+## Start Date Window Flow
 
 ```mermaid
 stateDiagram-v2
-    [*] --> OneWeek: initial window
+    [*] --> OneWeek: first start date window
     OneWeek --> Found: offerings returned
-    OneWeek --> ApprovalNeeded: no offerings and next window is available
-    ApprovalNeeded --> ExpandedSearch: admin approves larger window
+    OneWeek --> ApprovalNeeded: no offerings and next start date window is available
+    ApprovalNeeded --> ExpandedSearch: admin approves larger start date window
     ExpandedSearch --> Found: offerings returned
     ExpandedSearch --> ApprovalNeededAgain: admin can keep expanding
     ApprovalNeededAgain --> ExpandedSearch
-    ExpandedSearch --> Exhausted: no offerings through max window
+    ExpandedSearch --> Exhausted: no offerings through max start date window
     Found --> [*]
     Exhausted --> [*]
 ```

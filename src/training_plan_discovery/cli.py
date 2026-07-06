@@ -68,7 +68,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--max-lookahead-weeks",
         type=int,
         default=1,
-        help="Maximum number of weeks to search ahead. Defaults to 1",
+        help="Maximum number of weeks after the start time to search for offering start dates. Defaults to 1",
     )
     parser.add_argument(
         "--yes",
@@ -139,8 +139,8 @@ def _approve_all(previous_lookahead_weeks: int, next_lookahead_weeks: int) -> bo
 
 def _prompt_for_expansion(previous_lookahead_weeks: int, next_lookahead_weeks: int) -> bool:
     answer = input(
-        f"No offerings found within {previous_lookahead_weeks} week(s). "
-        f"Search within {next_lookahead_weeks} week(s)? [y/N]: "
+        f"No offerings found with start dates within {previous_lookahead_weeks} week(s). "
+        f"Search start dates within {next_lookahead_weeks} week(s)? [y/N]: "
     )
     return answer.strip().lower() in {"y", "yes"}
 
@@ -154,14 +154,14 @@ def _format_search_result(result: dict) -> str:
     if found:
         offering_count = len(result.get("offerings") or [])
         suffix = "" if offering_count == 1 else "s"
-        lines.append(f"Found {offering_count} training plan offering{suffix} within {lookahead} week(s).")
+        lines.append(f"Found {offering_count} training plan offering{suffix} with start dates within {lookahead} week(s).")
         lines.append("")
         lines.extend(_format_offerings_table(result.get("offerings") or [result["best_offering"]]))
     else:
-        lines.append(f"No training plan offering found within {lookahead} week(s).")
+        lines.append(f"No training plan offering found with start dates within {lookahead} week(s).")
         next_window = result.get("next_lookahead_weeks")
         if result.get("approval_required") and next_window is not None:
-            lines.append(f"Next approval needed: search within {next_window} week(s).")
+            lines.append(f"Next approval needed: search start dates within {next_window} week(s).")
 
     lines.append("")
     lines.append(f"Searched regions: {', '.join(searched_regions) if searched_regions else 'none'}")
