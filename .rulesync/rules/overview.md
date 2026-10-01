@@ -24,10 +24,13 @@ globs: ["**/*"]
 - Test: `python -m pytest`
 - Web UI: `python -m training_plan_discovery.web_app`, then open http://127.0.0.1:8000
 - CLI: `training-plan-discovery --instance-type ml.p5.48xlarge --duration-days 7`
-- AWS credentials: the standard provider chain (`aws configure` or `$env:AWS_PROFILE`)
+- AWS credentials: the standard provider chain with the `default` profile (see AWS safety)
+
+## AWS safety
+- **Read-only.** The only AWS call is SageMaker `SearchTrainingPlanOfferings` (CLI, web UI and live instance-type validation). Under the global AWS safety policy, running searches with the `default` profile is allowed.
+- **Repo-specific rule:** keep it read-only. Never add calls that create, purchase, modify or delete anything (for example `create_training_plan`). Never add deployment code (SAM, CloudFormation, CDK) to this repo; the Lambda/SAM variant lives in `aws-training-plan-discovery`.
 
 ## Conventions and constraints
-- Keep the tool read-only against AWS. Don't add calls that create, purchase or modify resources.
 - Keep credentials out of the browser. Web responses stay sanitized: no raw offering payload, and key, token, password and secret patterns are redacted. Render values with escaping or `textContent`. Static serving is limited to the bundled files.
 - Tests must not call AWS. Use fake clients like the existing ones, and add tests for new behavior.
 - Per-region API failures are non-fatal. Report them as warnings and keep searching the other regions.
