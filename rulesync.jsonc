@@ -1,0 +1,10 @@
+{
+  "$schema": "https://github.com/dyoshikawa/rulesync/releases/latest/download/config-schema.json",
+  // Managed by agent-init (~/.config/agent-setup). Edit .rulesync/, then run `rulesync generate` and commit.
+  "targets": ["claudecode", "antigravity-cli", "codexcli"],
+  // "ignore" (deprecated, breaks --check) and "checks" (unsupported by these targets) are left out on purpose.
+  "features": ["rules", "mcp", "commands", "subagents", "skills", "hooks", "permissions"],
+  // false: with true, generate deletes hand-made files in .claude/agents, .claude/skills, .agents/skills, .codex/agents.
+  // After removing a rule/skill/subagent from .rulesync/, preview with `rulesync generate --delete --dry-run`.
+  "delete": false
+}

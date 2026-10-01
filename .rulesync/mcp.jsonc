@@ -1,0 +1,6 @@
+{
+  "$schema": "https://github.com/dyoshikawa/rulesync/releases/latest/download/mcp-schema.json",
+  // Add project MCP servers here. Never put literal secrets in this file:
+  // use "envVars": ["NAME"] (Codex) and "env": { "NAME": "${NAME}" } (Claude/Antigravity).
+  "mcpServers": {}
+}
