@@ -26,6 +26,12 @@ globs: ["**/*"]
 - CLI: `training-plan-discovery --instance-type ml.p5.48xlarge --duration-days 7`
 - AWS credentials: the standard provider chain with the `default` profile (see AWS safety)
 
+## Test environment
+- One-time setup in the repo root (PowerShell): `python -m venv .venv`, then `.\.venv\Scripts\python -m pip install -e ".[dev]"`. `.venv/` is gitignored; each AO worktree needs its own `.venv`.
+- Activate: `.\.venv\Scripts\Activate.ps1` (or call `.\.venv\Scripts\python` directly).
+- Run tests: `python -m pytest`
+- The tests are offline (fakes only) and pass with no AWS credentials and no network. Baseline 2026-10-02: 57 passed. Report new failures; don't hide them.
+
 ## AWS safety
 - **Read-only.** The only AWS call is SageMaker `SearchTrainingPlanOfferings` (CLI, web UI and live instance-type validation). Under the global AWS safety policy, running searches with the `default` profile is allowed.
 - **Repo-specific rule:** keep it read-only. Never add calls that create, purchase, modify or delete anything (for example `create_training_plan`). Never add deployment code (SAM, CloudFormation, CDK) to this repo; the Lambda/SAM variant lives in `aws-training-plan-discovery`.
