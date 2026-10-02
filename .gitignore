@@ -10,3 +10,6 @@ training-plan-discovery.zip
 .aws-sam/
 request.json
 response.json
+
+# AO links the shared .venv into worktrees as a symlink; '.venv/' alone does not match a symlink
+.venv

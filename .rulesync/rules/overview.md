@@ -27,7 +27,8 @@ globs: ["**/*"]
 - AWS credentials: the standard provider chain with the `default` profile (see AWS safety)
 
 ## Test environment
-- One-time setup in the repo root (PowerShell): `python -m venv .venv`, then `.\.venv\Scripts\python -m pip install -e ".[dev]"`. `.venv/` is gitignored; each AO worktree needs its own `.venv`.
+- Use the **shared** venv: the main checkout's `.venv` (created once with `python -m venv .venv`, then `.\.venv\Scripts\python -m pip install -e ".[dev]"`). AO links it into every worker worktree (`--symlink .venv`). Use it as is: don't `pip install`, upgrade or delete anything in it without asking me, because other sessions share it.
+- This repo is installed into the shared `.venv` in editable mode, pointing at the main checkout's `src/`. AO sets `PYTHONPATH=src` so your worktree's code wins. Anywhere else (another worktree or a plain shell), run `$env:PYTHONPATH = "src"` first. pytest needs nothing extra (`pythonpath = ["src"]`).
 - Activate: `.\.venv\Scripts\Activate.ps1` (or call `.\.venv\Scripts\python` directly).
 - Run tests: `python -m pytest`
 - The tests are offline (fakes only) and pass with no AWS credentials and no network. Baseline 2026-10-02: 57 passed. Report new failures; don't hide them.
